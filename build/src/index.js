@@ -83,23 +83,15 @@ class OpenBlockLink extends Emitter{
             const {pathname} = url.parse(request.url);
             const Session = ROUTERS[pathname];
             let session;
-            
-            console.log(`[WEBSOCKET] Nueva conexión desde: ${request.connection.remoteAddress}`);
-            console.log(`[WEBSOCKET] Ruta solicitada: ${pathname}`);
-            console.log(`[WEBSOCKET] User-Agent: ${request.headers['user-agent'] || 'Desconocido'}`);
-            
             if (Session) {
                 session = new Session(socket, this.userDataPath, this.toolsPath);
-                console.info('✅ Conexión exitosa con el frontend');
-                console.log(`[SESSION] Sesión creada para: ${pathname}`);
+                console.info('new connection');
                 this.emit('new-connection');
             } else {
-                console.log(`❌ Ruta no encontrada: ${pathname}`);
                 return socket.close();
             }
             const dispose = () => {
                 if (session) {
-                    console.log(`[WEBSOCKET] Frontend desconectado`);
                     session.dispose();
                     session = null;
                 }

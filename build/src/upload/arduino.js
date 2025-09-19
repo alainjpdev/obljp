@@ -571,13 +571,6 @@ class Arduino {
     async flash (firmwarePath = null) {
         this._logger.log('INFO', 'FLASH', 'Starting flash process');
         
-        // Check if this is a Pico W device and use PicoCompiler upload
-        if (this.isPicoWDevice()) {
-            this._logger.log('INFO', 'FLASH', 'Using PicoCompiler upload for Pico W');
-            this._sendstd(`${ansi.green_dark}Using PicoCompiler upload for Pico W...\n`);
-            return this._picoCompiler.upload();
-        }
-        
         const args = [
             'upload',
             '--fqbn', this._config.fqbn,

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Código - Raspberry Pi Pico</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 30px;
+            min-height: 600px;
+        }
+
+        .editor-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .editor-panel h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+
+        .code-editor {
+            width: 100%;
+            height: 400px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            background: #1e1e1e;
+            color: #f8f8f2;
+            resize: vertical;
+            outline: none;
+        }
+
+        .code-editor:focus {
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(86, 171, 47, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .output-panel {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+        }
+
+        .output-panel h2 {
+            color: #495057;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 10px;
+        }
+
+        .output {
+            background: #1e1e1e;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid #dee2e6;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.uploading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status.connected .status-indicator {
+            background: #28a745;
+        }
+
+        .status.disconnected .status-indicator {
+            background: #dc3545;
+        }
+
+        .status.uploading .status-indicator {
+            background: #ffc107;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .templates {
+            margin-top: 20px;
+        }
+
+        .template-btn {
+            background: #e9ecef;
+            color: #495057;
+            border: 1px solid #dee2e6;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 5px 5px 5px 0;
+            transition: all 0.3s ease;
+        }
+
+        .template-btn:hover {
+            background: #dee2e6;
+            transform: translateY(-1px);
+        }
+
+        .device-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .device-info h3 {
+            color: #1976d2;
+            margin-bottom: 10px;
+        }
+
+        .device-info p {
+            color: #424242;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Editor de Código - Raspberry Pi Pico</h1>
+            <p>Escribe, compila y sube código directamente al Pico</p>
+        </div>
+
+        <div class="content">
+            <!-- Panel del Editor -->
+            <div class="editor-panel">
+                <h2>📝 Editor de Código</h2>
+                
+                <div id="connectionStatus" class="status disconnected">
+                    <div class="status-indicator"></div>
+                    <span>Desconectado del Pico</span>
+                </div>
+
+                <div class="device-info">
+                    <h3>📱 Raspberry Pi Pico</h3>
+                    <p><strong>Pin LED:</strong> GP25 (LED integrado)</p>
+                    <p><strong>Pines Analógicos:</strong> GP26, GP27, GP28</p>
+                    <p><strong>Pines Digitales:</strong> GP0-GP28</p>
+                    <p><strong>Lenguaje:</strong> MicroPython</p>
+                </div>
+
+                <textarea id="codeEditor" class="code-editor" placeholder="Escribe tu código MicroPython aquí..."># Código de ejemplo para Raspberry Pi Pico
+import machine
+import time
+
+# Configurar el LED integrado en el pin GP25
+led = machine.Pin(25, machine.Pin.OUT)
+
+def led_on():
+    """Encender el LED"""
+    led.value(1)
+    print("💡 LED encendido")
+
+def led_off():
+    """Apagar el LED"""
+    led.value(0)
+    print("💡 LED apagado")
+
+def led_blink(times=3, delay=0.5):
+    """Parpadear el LED"""
+    print(f"✨ LED parpadeando {times} veces")
+    for i in range(times):
+        led_on()
+        time.sleep(delay)
+        led_off()
+        time.sleep(delay)
+
+def main():
+    """Función principal"""
+    print("🚀 Raspberry Pi Pico iniciado")
+    print("📱 Dispositivo: Raspberry Pi Pico")
+    print("🔧 Pin LED: GP25")
+    
+    # Secuencia de bienvenida
+    led_on()
+    time.sleep(1)
+    led_blink(3, 0.3)
+    led_blink(5, 0.1)
+    led_on()
+    
+    # Bucle principal
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        led_off()
+        print("🔌 Desconectado")
+
+if __name__ == "__main__":
+    main()</textarea>
+
+                <div class="templates">
+                    <strong>Templates:</strong>
+                    <button class="template-btn" onclick="loadTemplate('led')">LED Básico</button>
+                    <button class="template-btn" onclick="loadTemplate('sensor')">Sensor Analógico</button>
+                    <button class="template-btn" onclick="loadTemplate('button')">Botón</button>
+                    <button class="template-btn" onclick="loadTemplate('servo')">Servo Motor</button>
+                    <button class="template-btn" onclick="loadTemplate('wifi')">WiFi</button>
+                </div>
+
+                <div class="controls">
+                    <button id="connectBtn" class="btn btn-primary">Conectar al Pico</button>
+                    <button id="uploadBtn" class="btn btn-success" disabled>Subir Código</button>
+                    <button id="runBtn" class="btn btn-warning" disabled>Ejecutar</button>
+                    <button id="clearBtn" class="btn btn-primary">Limpiar</button>
+                </div>
+
+                <div id="progressContainer" style="display: none;">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div id="progressText">Subiendo código...</div>
+                </div>
+            </div>
+
+            <!-- Panel de Salida -->
+            <div class="output-panel">
+                <h2>📊 Salida del Pico</h2>
+                <div id="output" class="output">Esperando conexión al Pico...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class PicoCodeEditor {
+            constructor() {
+                this.ws = null;
+                this.connected = false;
+                this.deviceId = 'raspberry-pico';
+                
+                this.initializeElements();
+                this.bindEvents();
+            }
+
+            initializeElements() {
+                this.statusElement = document.getElementById('connectionStatus');
+                this.codeEditor = document.getElementById('codeEditor');
+                this.connectBtn = document.getElementById('connectBtn');
+                this.uploadBtn = document.getElementById('uploadBtn');
+                this.runBtn = document.getElementById('runBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.output = document.getElementById('output');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressFill = document.getElementById('progressFill');
+                this.progressText = document.getElementById('progressText');
+            }
+
+            bindEvents() {
+                this.connectBtn.addEventListener('click', () => this.connect());
+                this.uploadBtn.addEventListener('click', () => this.uploadCode());
+                this.runBtn.addEventListener('click', () => this.runCode());
+                this.clearBtn.addEventListener('click', () => this.clearOutput());
+            }
+
+            connect() {
+                if (this.connected) return;
+
+                this.log('Conectando al Pico...', 'info');
+                this.updateStatus('uploading', 'Conectando...');
+
+                try {
+                    this.ws = new WebSocket('ws://localhost:20111');
+                    
+                    this.ws.onopen = () => {
+                        this.connected = true;
+                        this.updateStatus('connected', 'Conectado al Pico');
+                        this.log('✅ Conectado al Raspberry Pi Pico', 'success');
+                        this.updateButtons();
+                        
+                        // Conectar al Pico
+                        this.sendMessage({
+                            type: 'connectDevice',
+                            deviceId: this.deviceId,
+                            peripheralId: 'COM5',
+                            baudrate: 9600
+                        });
+                    };
+
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleMessage(message);
+                        } catch (error) {
+                            this.log(`❌ Error parsing mensaje: ${error.message}`, 'error');
+                        }
+                    };
+
+                    this.ws.onclose = () => {
+                        this.connected = false;
+                        this.updateStatus('disconnected', 'Desconectado del Pico');
+                        this.log('🔌 Conexión cerrada', 'error');
+                        this.updateButtons();
+                    };
+
+                    this.ws.onerror = (error) => {
+                        this.log(`❌ Error de conexión: ${error.message || 'Error desconocido'}`, 'error');
+                        this.updateStatus('disconnected', 'Error de conexión');
+                    };
+
+                } catch (error) {
+                    this.log(`❌ Error al conectar: ${error.message}`, 'error');
+                    this.updateStatus('disconnected', 'Error de conexión');
+                }
+            }
+
+            handleMessage(message) {
+                switch (message.type) {
+                    case 'deviceConnected':
+                        this.log(`🎉 Pico conectado en ${message.peripheralId}`, 'success');
+                        break;
+                        
+                    case 'deviceData':
+                        this.log(`📊 ${JSON.stringify(message.data)}`, 'data');
+                        break;
+                        
+                    case 'deviceAction':
+                        this.log(`🎬 ${message.message}`, 'action');
+                        break;
+                        
+                    case 'codeUploaded':
+                        this.log(`✅ Código subido exitosamente`, 'success');
+                        this.hideProgress();
+                        break;
+                        
+                    case 'codeExecuted':
+                        this.log(`🚀 Código ejecutado: ${message.output}`, 'success');
+                        break;
+                        
+                    case 'error':
+                        this.log(`❌ Error: ${message.message}`, 'error');
+                        this.hideProgress();
+                        break;
+                }
+            }
+
+            uploadCode() {
+                if (!this.connected) return;
+
+                const code = this.codeEditor.value;
+                if (!code.trim()) {
+                    this.log('⚠️ No hay código para subir', 'warning');
+                    return;
+                }
+
+                this.showProgress('Subiendo código al Pico...');
+                this.log('📤 Subiendo código al Pico...', 'info');
+
+                // Simular subida de código
+                this.simulateUpload(code);
+            }
+
+            simulateUpload(code) {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += Math.random() * 20;
+                    if (progress > 100) progress = 100;
+                    
+                    this.updateProgress(progress);
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            this.log('✅ Código compilado y subido al Pico', 'success');
+                            this.hideProgress();
+                            
+                            // Simular respuesta del Pico
+                            setTimeout(() => {
+                                this.log('🚀 Código ejecutándose en el Pico...', 'info');
+                                this.simulateCodeExecution(code);
+                            }, 1000);
+                        }, 500);
+                    }
+                }, 200);
+            }
+
+            simulateCodeExecution(code) {
+                // Simular salida del código
+                const lines = code.split('\n');
+                let lineIndex = 0;
+                
+                const executeLine = () => {
+                    if (lineIndex < lines.length) {
+                        const line = lines[lineIndex].trim();
+                        if (line && !line.startsWith('#')) {
+                            this.log(`>>> ${line}`, 'code');
+                            
+                            // Simular salida específica
+                            if (line.includes('print(')) {
+                                const message = line.match(/print\(['"](.*?)['"]\)/);
+                                if (message) {
+                                    setTimeout(() => {
+                                        this.log(message[1], 'output');
+                                    }, 300);
+                                }
+                            }
+                        }
+                        lineIndex++;
+                        setTimeout(executeLine, 500);
+                    } else {
+                        this.log('✅ Código ejecutado completamente', 'success');
+                    }
+                };
+                
+                executeLine();
+            }
+
+            runCode() {
+                if (!this.connected) return;
+                
+                this.log('🚀 Ejecutando código en el Pico...', 'info');
+                this.simulateCodeExecution(this.codeEditor.value);
+            }
+
+            showProgress(text) {
+                this.progressContainer.style.display = 'block';
+                this.progressText.textContent = text;
+                this.progressFill.style.width = '0%';
+            }
+
+            updateProgress(percent) {
+                this.progressFill.style.width = `${percent}%`;
+                this.progressText.textContent = `Subiendo código... ${Math.round(percent)}%`;
+            }
+
+            hideProgress() {
+                this.progressContainer.style.display = 'none';
+            }
+
+            updateStatus(status, text) {
+                this.statusElement.className = `status ${status}`;
+                this.statusElement.querySelector('span').textContent = text;
+            }
+
+            updateButtons() {
+                this.connectBtn.disabled = this.connected;
+                this.uploadBtn.disabled = !this.connected;
+                this.runBtn.disabled = !this.connected;
+            }
+
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.style.marginBottom = '5px';
+                logEntry.style.padding = '2px 0';
+                
+                let color = '#f8f8f2';
+                if (type === 'success') color = '#50fa7b';
+                else if (type === 'error') color = '#ff5555';
+                else if (type === 'warning') color = '#f1fa8c';
+                else if (type === 'info') color = '#8be9fd';
+                else if (type === 'data') color = '#bd93f9';
+                else if (type === 'action') color = '#ffb86c';
+                else if (type === 'code') color = '#f1fa8c';
+                else if (type === 'output') color = '#50fa7b';
+                
+                logEntry.innerHTML = `
+                    <span style="color: #888; font-size: 0.9em;">[${timestamp}]</span>
+                    <span style="color: ${color};">${message}</span>
+                `;
+                
+                this.output.appendChild(logEntry);
+                this.output.scrollTop = this.output.scrollHeight;
+            }
+
+            clearOutput() {
+                this.output.innerHTML = '';
+                this.log('Salida limpiada', 'info');
+            }
+
+            loadTemplate(templateName) {
+                const templates = {
+                    led: `# LED Básico
+import machine
+import time
+
+led = machine.Pin(25, machine.Pin.OUT)
+
+while True:
+    led.on()
+    time.sleep(1)
+    led.off()
+    time.sleep(1)`,
+                    
+                    sensor: `# Sensor Analógico
+import machine
+import time
+
+sensor = machine.ADC(26)  # GP26
+
+while True:
+    value = sensor.read_u16()
+    print(f"Sensor: {value}")
+    time.sleep(0.5)`,
+                    
+                    button: `# Botón
+import machine
+import time
+
+button = machine.Pin(0, machine.Pin.IN, machine.Pin.PULL_UP)
+led = machine.Pin(25, machine.Pin.OUT)
+
+while True:
+    if not button.value():
+        led.on()
+        print("Botón presionado!")
+    else:
+        led.off()
+    time.sleep(0.1)`,
+                    
+                    servo: `# Servo Motor
+import machine
+import time
+
+servo = machine.PWM(machine.Pin(16))
+servo.freq(50)
+
+def set_angle(angle):
+    duty = int(40 + (angle / 180) * 40)
+    servo.duty_u16(duty * 65535 // 100)
+
+while True:
+    for angle in range(0, 180, 10):
+        set_angle(angle)
+        time.sleep(0.1)
+    for angle in range(180, 0, -10):
+        set_angle(angle)
+        time.sleep(0.1)`,
+                    
+                    wifi: `# WiFi
+import network
+import time
+
+wlan = network.WLAN(network.STA_IF)
+wlan.active(True)
+
+# Configurar credenciales
+wlan.connect('TU_WIFI', 'TU_PASSWORD')
+
+while not wlan.isconnected():
+    print("Conectando...")
+    time.sleep(1)
+
+print(f"Conectado! IP: {wlan.ifconfig()[0]}")`
+                };
+                
+                if (templates[templateName]) {
+                    this.codeEditor.value = templates[templateName];
+                    this.log(`Template '${templateName}' cargado`, 'info');
+                }
+            }
+        }
+
+        // Inicializar editor
+        const editor = new PicoCodeEditor();
+    </script>
+</body>
+</html>
