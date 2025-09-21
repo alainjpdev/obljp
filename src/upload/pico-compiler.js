@@ -147,7 +147,6 @@ def delay(ms):
             'digitalRead(': 'pin.read(',
             'analogWrite(': 'pin.duty(',
             'analogRead(': 'pin.read_analog(',
-            'delay(': 'time.sleep(',
             'Serial.print(': 'print(',
             'Serial.println(': 'print(',
             'LED_BUILTIN': '"LED"',
@@ -165,6 +164,16 @@ def delay(ms):
             const escapedArduino = arduino.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             micropythonCode = micropythonCode.replace(new RegExp(escapedArduino, 'g'), micropython);
         }
+        
+        // Convert delay() with proper time conversion
+        micropythonCode = micropythonCode.replace(/delay\s*\(\s*(\d+)\s*\*\s*1000\s*\)/g, (match, multiplier) => {
+            return `time.sleep(${multiplier})`;
+        });
+        
+        micropythonCode = micropythonCode.replace(/delay\s*\(\s*(\d+)\s*\)/g, (match, ms) => {
+            const seconds = parseInt(ms) / 1000;
+            return `time.sleep(${seconds})`;
+        });
         
         // Agregar imports básicos de MicroPython
         const imports = [
@@ -225,12 +234,20 @@ def delay(ms):
                 }
             } else if (inLoop && trimmed.startsWith('time.sleep(')) {
                 // Convertir delay a time.sleep
-                const match = trimmed.match(/time\.sleep\(\s*(\d+)\s*\)/);
+                const match = trimmed.match(/time\.sleep\(\s*(\d+)\s*\*\s*1000\s*\)/);
                 if (match) {
-                    const seconds = parseInt(match[1]) / 1000; // Convertir ms a segundos
-                    result.push(`    time.sleep(${seconds})`);
+                    // time.sleep(1 * 1000) -> time.sleep(1)
+                    result.push(`    time.sleep(${match[1]})`);
                 } else {
-                    result.push(`    ${trimmed}`);
+                    const simpleMatch = trimmed.match(/time\.sleep\(\s*(\d+)\s*\)/);
+                    if (simpleMatch) {
+                        const ms = parseInt(simpleMatch[1]);
+                        // Si el valor es mayor a 100, asumir que son milisegundos y convertir
+                        const seconds = ms > 100 ? ms / 1000 : ms;
+                        result.push(`    time.sleep(${seconds})`);
+                    } else {
+                        result.push(`    ${trimmed}`);
+                    }
                 }
             } else if (inLoop && trimmed.startsWith('print(')) {
                 result.push(`    ${trimmed}`);

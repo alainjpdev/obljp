@@ -137,6 +137,25 @@ class OpenBlockLink extends Emitter{
             if (request.url === '/') {
                 res.writeHead(200, {'Content-Type': 'text/html'});
                 res.end(SERVER_NAME);
+            } else if (request.url === '/devices/en.json') {
+                // Endpoint para listar dispositivos disponibles
+                const devices = {
+                    "arduinoRaspberryPiPicoW": {
+                        "name": "Raspberry Pi Pico W",
+                        "type": "arduino",
+                        "description": "Raspberry Pi Pico W with WiFi",
+                        "capabilities": ["digital_pin", "analog_pin", "pwm", "serial", "wifi"],
+                        "pins": {
+                            "digital": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 26, 27, 28],
+                            "analog": [26, 27, 28],
+                            "pwm": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 26, 27, 28],
+                            "led": "LED"
+                        }
+                    }
+                };
+                
+                res.writeHead(200, {'Content-Type': 'application/json'});
+                res.end(JSON.stringify(devices));
             }
         });
 

@@ -5,17 +5,17 @@
   "main": "src/index.js",
   "scripts": {
     "fetch": "rimraf tools firmwares && node script/download-tools.js && node script/download-firmwares.js",
-    "start": "rimraf ../.openblockData/link && node test/start-server.js --log-level=info",
-    "start:debug": "rimraf ../.openblockData/link && node test/start-server.js --log-level=debug",
+    "start": "rimraf ../.openblockData/link && export NVM_DIR=\"$HOME/Library/Application Support/Herd/config/nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 16 && node test/start-server.js --log-level=info",
+    "start:debug": "rimraf ../.openblockData/link && export NVM_DIR=\"$HOME/Library/Application Support/Herd/config/nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 16 && node test/start-server.js --log-level=debug",
     "clean": "rimraf ../.openblockData/link tools firmwares",
     "build": "rimraf build && mkdir -p build && cp -r src build/ && cp -r script build/ && cp -r test build/ && cp package.json build/ && cp -r node_modules build/ && cp simulador-openblock-link-real.js build/ && cp pico_connection_lib.py build/ && cp pico_bridge.py build/ && cp test-pico-final.js build/",
-    "build:start": "cd build && node test/start-server.js --log-level=info",
+    "build:start": "cd build && export NVM_DIR=\"$HOME/Library/Application Support/Herd/config/nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 16 && node test/start-server.js --log-level=info",
     "build:simulator": "cd build && node simulador-openblock-link-real.js",
     "build:test": "cd build && node test-pico-final.js",
     "docs": "jsdoc -c .jsdoc.json",
     "lint": "eslint ./src",
     "test": "",
-    "test:multi-server": "node test/start-multi-server.js --log-level=info"
+    "test:multi-server": "export NVM_DIR=\"$HOME/Library/Application Support/Herd/config/nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 16 && node test/start-multi-server.js --log-level=info"
   },
   "repository": {
     "type": "git",
